@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
 set -e
+git log --name-only --pretty=format: | sed -e 's:[[:blank:]]*::g' | sort -u > all.files
+git ls-files | sed -e 's:[[:blank:]]*::g' | sort -u > git.files
+file_count=$(cat all.files | wc -l)
+head_count=$(cat git.files | wc -l)
+
+function print_count() {
+    echo "$1 files ( $(( $1 *100 / ${head_count} ))% of head, $(( $1 * 100 / ${file_count} ))% of total)"
+}
 
 while [ $# -gt 0 ]; do
     user=$1
     name=$(echo ${user} | tr ' ' '-')
     git log --name-only --pretty=format: --author "${user}" | sed -e 's:[[:blank:]]*::g' | sort -u > ${name}.files
-    git ls-files | sed -e 's:[[:blank:]]*::g' | sort -u > git.files
 
     comm -12 ${name}.files git.files > ${name}.head.changed
     comm -23 ${name}.files git.files > ${name}.head.deleted
     comm -13 ${name}.files git.files > ${name}.head.intact
 
-    echo "${user} changed $(cat ${name}.head.changed | wc -l) files , deleted $(cat ${name}.head.deleted | wc -l) files, never edited $(cat ${name}.head.intact | wc -l) files"
+    changed=$(( $(cat ${name}.head.changed | wc -l) ))
+    deleted=$(( $(cat ${name}.head.deleted | wc -l) ))
+    intact=$(( $(cat ${name}.head.intact | wc -l) ))
+
+    echo "${user} changed $(print_count ${changed}), deleted $(print_count ${deleted}), never edited $(print_count ${intact})"
     shift
 done
+echo "Head has $(print_count ${head_count}); total ever commited files: ${file_count}"
