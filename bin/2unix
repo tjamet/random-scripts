@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+import os
+import sys
+
+for f in sys.argv[1:]:
+    with open('.out', 'wb') as out:
+        for line in open(f, 'rbU'):
+            out.write(line)
+        try:
+            os.rename(f, '.old')
+            os.rename('.out', f)
+            os.remove('.old')
+        except:
+            os.rename('.old', f)
+            raise
+
